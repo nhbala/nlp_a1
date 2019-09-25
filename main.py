@@ -25,3 +25,12 @@ def process_data():
     for i in f_lst:
         i.append("<e>")
     return f_lst
+
+def create_unigram_dict(lst):
+    result = {}
+    for elt in lst:
+        if elt not in result:
+            result[elt] = 1
+        else:
+            count = result[elt]
+            result[elt] = count+1
