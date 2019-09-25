@@ -80,6 +80,32 @@ def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set):
             pred_lst.append((review_index, 0))
     return pred_lst
 
+def bigram_classifier(bigram_dict_real, bigram_dict_fake, test_set):
+    test_lst = process_data(test_set)
+    pred_lst = []
+    for review_index in range(len(test_lst)):
+        review = test_lst[review_index]
+        fake_prob = helper_bigram(review, bigram_dict_fake)
+        fake_perplexity = (fake_prob) ** (-1/(len(review)))
+        real_prob = helper_bigram(review, bigram_dict_real)
+        real_perplexity = (real_prob) ** (-1/(len(review)))
+        if fake_perplexity < real_perplexity:
+            pred_lst.append((review_index, 1))
+        else:
+            pred_lst.append((review_index, 0))
+    return pred_lst
+
+
+def helper_bigram(review_str, bigram_dict, unigram_dict):
+    curr_prob = 1
+    for w_index in range(0, len(review_str)-1):
+        curr_tup = (review_str[w_index], review_str[w_index + 1])
+        curr_bigram_count = bigram_dict[curr_tup]
+        bottom_number = unigram_dict[review_str[w_index]]
+        curr_prob *= (curr_bigram_count/bottom_number)
+    return curr_prob
+
+
 
 
 
