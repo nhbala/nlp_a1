@@ -1,7 +1,24 @@
 import re
 
+def createPredictions():
+    train_truthful = process_data('./DATASET/train/truthful.txt', 'r')
+    train_deceptive = process_data('./DATASET/train/deceptive.txt', 'r')
+    val_truthful = process_data('./DATASET/validation/truthful.txt', 'r')
+    val_deceptive = process_data('./DATASET/validation/deceptive.txt', 'r')
+    test = process_data('./DATASET/test/test.txt', 'r')
+
+    t_unigram_dict = create_unigram_dict(train_truthful)
+    d_unigram_dict = create_unigram_dict(train_deceptive)
+    t_bigram_dict = create_bigram_dict(train_truthful)
+    d_bigram_dict = create_bigram_dict(train_deceptive)
+
+    # call unigram/bigram classifiers 
+
+
+# text_file is the path of the file to process
 def process_data(text_file):
-    f = open('./DATASET/train/truthful.txt', 'r')
+    #f = open('./DATASET/train/truthful.txt', 'r')
+    f = open(text_file)
     file = f.read()
     split_arr = file.split(" ")
     regex = re.compile('[a-zA-Z]')
@@ -65,14 +82,15 @@ def create_total_count(dict):
         total_count += (dict[w])
     return total_count
 
-def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set):
+# k is the smoothing amount
+def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set, smoothing=False, k=1):
     test_lst = process_data(test_set)
     pred_lst = []
     for review_index in range(len(test_lst)):
         review = test_lst[review_index]
-        fake_prob = helper_unigram(review, unigram_dict_fake)
+        fake_prob = helper_unigram(review, unigram_dict_fake, smoothing, k)
         fake_perplexity = (fake_prob) ** (-1/len(review))
-        real_prob = helper_unigram(review, unigram_dict_real)
+        real_prob = helper_unigram(review, unigram_dict_real, smoothing, k)
         real_perplexity = (real_prob) ** (-1/len(review))
         if fake_perplexity < real_perplexity:
             pred_lst.append((review_index, 1))
@@ -80,14 +98,15 @@ def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set):
             pred_lst.append((review_index, 0))
     return pred_lst
 
-def bigram_classifier(bigram_dict_real, bigram_dict_fake, test_set):
+def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake,
+ test_set, smoothing=False, k=1):
     test_lst = process_data(test_set)
     pred_lst = []
     for review_index in range(len(test_lst)):
         review = test_lst[review_index]
-        fake_prob = helper_bigram(review, bigram_dict_fake)
+        fake_prob = helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k)
         fake_perplexity = (fake_prob) ** (-1/(len(review)))
-        real_prob = helper_bigram(review, bigram_dict_real)
+        real_prob = helper_bigram(review, bigram_dict_real, udict_real,smoothing,k)
         real_perplexity = (real_prob) ** (-1/(len(review)))
         if fake_perplexity < real_perplexity:
             pred_lst.append((review_index, 1))
@@ -95,28 +114,26 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, test_set):
             pred_lst.append((review_index, 0))
     return pred_lst
 
-
-def helper_bigram(review_str, bigram_dict, unigram_dict):
+# if smoothing is True, probability will be calculated with add-k smoothing
+def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
     curr_prob = 1
     for w_index in range(0, len(review_str)-1):
         curr_tup = (review_str[w_index], review_str[w_index + 1])
         curr_bigram_count = bigram_dict[curr_tup]
         bottom_number = unigram_dict[review_str[w_index]]
-        curr_prob *= (curr_bigram_count/bottom_number)
+        if smoothing:
+            curr_prob *= (curr_bigram_count + k)/(bottom_number + len(unigram_dict))
+        else:
+            curr_prob *= (curr_bigram_count/bottom_number)
     return curr_prob
 
 
-
-
-
-
-
-
-
-def helper_unigram(review_str, unigram_dict):
+def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
     curr_prob = 1
     total_count = create_total_count(unigram_dict)
     for w in review_str:
-        prob = unigram_dict[w]/total_count
-        curr_prob *= prob
+        if smoothing:
+            curr_prob *= (unigram_dict[w] + k)/(total_count + len(unigram_dict))
+        else:
+            curr_prob *= unigram_dict[w]/total_count
     return curr_prob
