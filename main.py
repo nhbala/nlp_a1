@@ -1,4 +1,5 @@
 import re
+import math
 
 def createPredictions():
     train_truthful = process_data('./DATASET/train/truthful.txt', 'r')
@@ -12,7 +13,7 @@ def createPredictions():
     t_bigram_dict = create_bigram_dict(train_truthful)
     d_bigram_dict = create_bigram_dict(train_deceptive)
 
-    # call unigram/bigram classifiers 
+    # call unigram/bigram classifiers
 
 
 # text_file is the path of the file to process
@@ -113,6 +114,13 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake
         else:
             pred_lst.append((review_index, 0))
     return pred_lst
+
+# probabilities is a list of the probabilities to multiply - use this function in the classifiers
+def perplexity(probabilities):
+    summation = 0
+    for p in probabilities:
+        summation += -1*math.log(p)
+    return math.exp(1/n*summation)
 
 # if smoothing is True, probability will be calculated with add-k smoothing
 def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
