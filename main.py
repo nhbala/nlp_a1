@@ -6,14 +6,17 @@ def createPredictions():
     train_deceptive = process_data('./DATASET/train/deceptive.txt', 'r')
     val_truthful = process_data('./DATASET/validation/truthful.txt', 'r')
     val_deceptive = process_data('./DATASET/validation/deceptive.txt', 'r')
+    # combine validation sets
+    val_all = val_truthful + val_deceptive
     test = process_data('./DATASET/test/test.txt', 'r')
 
     t_unigram_dict = create_unigram_dict(train_truthful)
-    d_unigram_dict = create_unigram_dict(train_deceptive)
+    f_unigram_dict = create_unigram_dict(train_deceptive)
     t_bigram_dict = create_bigram_dict(train_truthful)
-    d_bigram_dict = create_bigram_dict(train_deceptive)
+    f_bigram_dict = create_bigram_dict(train_deceptive)
 
     # call unigram/bigram classifiers
+    unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True)
 
 
 # text_file is the path of the file to process
@@ -93,11 +96,9 @@ def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set, smoothing=
     pred_lst = []
     for review_index in range(len(test_lst)):
         review = test_lst[review_index]
-        fake_prob = helper_unigram(review, unigram_dict_fake, smoothing, k)
-        fake_perplexity = (fake_prob) ** (-1/len(review))
-        real_prob = helper_unigram(review, unigram_dict_real, smoothing, k)
-        real_perplexity = (real_prob) ** (-1/len(review))
-        if fake_perplexity < real_perplexity:
+        fake_pp = helper_unigram(review, unigram_dict_fake, smoothing, k)
+        real_pp = helper_unigram(review, unigram_dict_real, smoothing, k)
+        if fake_pp < real_pp:
             pred_lst.append((review_index, 1))
         else:
             pred_lst.append((review_index, 0))
@@ -109,51 +110,50 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake
     pred_lst = []
     for review_index in range(len(test_lst)):
         review = test_lst[review_index]
-        fake_prob = helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k)
-        fake_perplexity = (fake_prob) ** (-1/(len(review)))
-        real_prob = helper_bigram(review, bigram_dict_real, udict_real,smoothing,k)
-        real_perplexity = (real_prob) ** (-1/(len(review)))
-        if fake_perplexity < real_perplexity:
+        fake_pp = helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k)
+        real_pp = helper_bigram(review, bigram_dict_real, udict_real,smoothing,k)
+        if fake_pp < real_pp:
             pred_lst.append((review_index, 1))
         else:
             pred_lst.append((review_index, 0))
     return pred_lst
 
-# probabilities is a list of the probabilities to multiply - use this function in the classifiers
+# probabilities is a list of the probs to multiply
 def perplexity(probabilities):
     summation = 0
     for p in probabilities:
         summation += -1*math.log(p)
     return math.exp(1/n*summation)
 
+# Returns the perplexity of a test review
 # if smoothing is True, probability will be calculated with add-k smoothing
 def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
-    curr_prob = 1
+    probs = []
     total_count = create_total_count(bigram_dict)
     for w_index in range(0, len(review_str)-1):
         curr_tup = (review_str[w_index], review_str[w_index + 1])
         top_num = bigram_dict.get(curr_tup, 0)
         if top_num == 0:
             top_num = bigram_dict["<unk>"]
-            curr_prob *= top_num/total_count
+            probs.append(top_num/total_count)
         else:
             bottom_number = unigram_dict.get(review_str[w_index], 0)
             if smoothing:
-                curr_prob *= (curr_bigram_count + k)/(bottom_number + len(unigram_dict))
+                probs.append(curr_bigram_count + k)/(bottom_number + len(unigram_dict))
             else:
-                curr_prob *= (curr_bigram_count/bottom_number)
-    return curr_prob
+                probs.append(curr_bigram_count/bottom_number)
+    return perplexity(probs)
 
 
 def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
-    curr_prob = 1
+    probs = []
     total_count = create_total_count(unigram_dict)
     for w in review_str:
         top_num = unigram_dict.get(w, 0)
         if top_num == 0:
             top_num = unigram_dict["<unk>"]
         if smoothing:
-            curr_prob *= (tup_num + k)/(total_count + len(unigram_dict))
+            probs.append(tup_num + k)/(total_count + len(unigram_dict))
         else:
-            curr_prob *= tup_num/total_count
-    return curr_prob
+            probs.append(tup_num/total_count)
+    return perplexity(probs)
