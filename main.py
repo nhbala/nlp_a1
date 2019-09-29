@@ -46,13 +46,15 @@ def process_data(text_file):
 
 def create_unigram_dict(lst):
     result = {}
+    result["<unk>"] = 0
     flat_list = []
     for sublist in lst:
         for item in sublist:
             flat_list.append(item)
     for elt in flat_list:
         if elt not in result:
-            result[elt] = 1
+            result["<unk>"] += 1
+            result[elt] = 0
         else:
             count = result[elt]
             result[elt] = count+1
