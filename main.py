@@ -129,18 +129,19 @@ def perplexity(probabilities):
 # if smoothing is True, probability will be calculated with add-k smoothing
 def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
     curr_prob = 1
+    total_count = create_total_count(bigram_dict)
     for w_index in range(0, len(review_str)-1):
         curr_tup = (review_str[w_index], review_str[w_index + 1])
-        curr_bigram_count = bigram_dict.get(curr_tup, 0)
-        if curr_bigram_count == 0:
-            curr_bigram_count = bigram_dict["<unk>"]
-        bottom_number = unigram_dict.get(review_str[w_index], 0)
-        if bottom_number == 0:
-            bottom_number = unigram_dict["<unk>"]
-        if smoothing:
-            curr_prob *= (curr_bigram_count + k)/(bottom_number + len(unigram_dict))
+        top_num = bigram_dict.get(curr_tup, 0)
+        if top_num == 0:
+            top_num = bigram_dict["<unk>"]
+            curr_prob *= top_num/total_count
         else:
-            curr_prob *= (curr_bigram_count/bottom_number)
+            bottom_number = unigram_dict.get(review_str[w_index], 0)
+            if smoothing:
+                curr_prob *= (curr_bigram_count + k)/(bottom_number + len(unigram_dict))
+            else:
+                curr_prob *= (curr_bigram_count/bottom_number)
     return curr_prob
 
 
