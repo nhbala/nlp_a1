@@ -2,12 +2,12 @@ import re
 import math
 
 def createPredictions():
-    train_truthful = process_data('./DATASET/train/truthful.txt', 'r')
-    train_deceptive = process_data('./DATASET/train/deceptive.txt', 'r')
-    val_truthful = process_data('./DATASET/validation/truthful.txt', 'r')
-    val_deceptive = process_data('./DATASET/validation/deceptive.txt', 'r')
+    train_truthful = process_data('./DATASET/train/truthful.txt')
+    train_fake = process_data('./DATASET/train/deceptive.txt')
+    val_truthful = process_data('./DATASET/validation/truthful.txt')
+    val_fake = process_data('./DATASET/validation/deceptive.txt')
     # combine validation sets
-    val_all = val_truthful + val_deceptive
+    val_all = val_truthful + val_fake
     test = process_data('./DATASET/test/test.txt', 'r')
 
     t_unigram_dict = create_unigram_dict(train_truthful)
@@ -91,11 +91,10 @@ def create_total_count(dict):
     return total_count
 
 # k is the smoothing amount
-def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set, smoothing=False, k=1):
-    test_lst = process_data(test_set)
+def unigram_classifier(unigram_dict_real, unigram_dict_fake, test_set, smoothing=False, k=1):
     pred_lst = []
-    for review_index in range(len(test_lst)):
-        review = test_lst[review_index]
+    for review_index in range(len(test_set)):
+        review = test_set[review_index]
         fake_pp = helper_unigram(review, unigram_dict_fake, smoothing, k)
         real_pp = helper_unigram(review, unigram_dict_real, smoothing, k)
         if fake_pp < real_pp:
@@ -106,10 +105,9 @@ def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set, smoothing=
 
 def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake,
  test_set, smoothing=False, k=1):
-    test_lst = process_data(test_set)
     pred_lst = []
-    for review_index in range(len(test_lst)):
-        review = test_lst[review_index]
+    for review_index in range(len(test_set)):
+        review = test_set[review_index]
         fake_pp = helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k)
         real_pp = helper_bigram(review, bigram_dict_real, udict_real,smoothing,k)
         if fake_pp < real_pp:
@@ -120,10 +118,11 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake
 
 # probabilities is a list of the probs to multiply
 def perplexity(probabilities):
+    print("perp")
     summation = 0
     for p in probabilities:
         summation += -1*math.log(p)
-    return math.exp(1/n*summation)
+    return math.exp(1/len(probabilities)*summation)
 
 # Returns the perplexity of a test review
 # if smoothing is True, probability will be calculated with add-k smoothing
@@ -153,7 +152,7 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
         if top_num == 0:
             top_num = unigram_dict["<unk>"]
         if smoothing:
-            probs.append(tup_num + k)/(total_count + len(unigram_dict))
+            probs.append((top_num + k)/(total_count + len(unigram_dict)))
         else:
-            probs.append(tup_num/total_count)
+            probs.append(top_num/total_count)
     return perplexity(probs)
