@@ -62,6 +62,7 @@ def create_unigram_dict(lst):
 
 def create_bigram_dict(lst):
     result = {}
+    result["<unk>"] = 0
     flat_list = []
     for sublist in lst:
         for item in sublist:
@@ -74,7 +75,8 @@ def create_bigram_dict(lst):
             if curr_tup == ("<s>", "<e>"):
                 continue
             elif curr_tup not in result:
-                result[curr_tup] = 1
+                result["<unk>"] += 1
+                result[curr_tup] = 0
             else:
                 result[curr_tup] += 1
     return result
