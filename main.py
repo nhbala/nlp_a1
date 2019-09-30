@@ -63,9 +63,10 @@ def main():
     inp_ys = truth_ys+spam_ys
     gnb = GaussianNB()
     gnb.fit(inp_xs, inp_ys)
-    y_pred = gnb.predict(val_all)
+    val_xs, dont_use_this = create_nb_input(val_all, whole_dict, 0)
+    y_pred = gnb.predict(val_xs)
     print("Number of mislabeled points out of a total %d points : %d"
-    % (len(xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
+    % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
 
     return accuracy
@@ -177,10 +178,14 @@ def create_nb_input(lst, dic, truthful):
     for sublist in lst:
         new_dict = dic.fromkeys(dic, 0)
         for elt in sublist:
-            new_dict[elt] = new_dict[elt]+1
-        l = new_dict.values()
+            if elt in dic:
+                new_dict[elt] = new_dict[elt]+1
+        l = list(new_dict.values())
         xs.append(l)
-    return xs, [truthful]*(len(lst))
+    ys = []
+    for i in lst:
+        ys.append([truthful])
+    return xs, ys
 
 def create_total_count(dict):
     total_count = 0
