@@ -16,7 +16,7 @@ def main():
     val_fake = process_data_unigram('./DATASET/validation/deceptive.txt')
     # combine validation sets
     val_all = val_truthful + val_fake
-    unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True)
+    unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True, 0.5)
     numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
     while i < numTrue:
         if unigram_val_preds[i][1] == 0:
@@ -55,7 +55,7 @@ def main():
     # combine validation sets
     val_all = val_truthful + val_fake
     bigram_val_preds = bigram_classifier(t_bigram_dict, f_bigram_dict,
-    t_unigram_dict, f_unigram_dict, val_all, True)
+    t_unigram_dict, f_unigram_dict, val_all, True, 0.5)
     numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
     while i < numTrue:
         if bigram_val_preds[i][1] == 0:
@@ -254,12 +254,13 @@ def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
         curr_tup = (review_str[w_index], review_str[w_index + 1])
         top_num = bigram_dict.get(curr_tup, 0)
         if top_num == 0:
-            top_num = bigram_dict["<unk>"]
+            #top_num = bigram_dict["<unk>"]
+            top_num = k
             probs.append(top_num/total_count)
         else:
             bottom_number = unigram_dict.get(review_str[w_index], 0)
             if smoothing:
-                probs.append((top_num + k)/(bottom_number + len(unigram_dict)))
+                probs.append((top_num + k)/(bottom_number + k*len(unigram_dict)))
             else:
                 probs.append(top_num/bottom_number)
     return perplexity(probs)
@@ -273,7 +274,7 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
         if top_num == 0:
             top_num = unigram_dict["<unk>"]
         if smoothing:
-            probs.append((top_num + k)/(total_count + len(unigram_dict)))
+            probs.append((top_num + k)/(total_count + k*len(unigram_dict)))
         else:
             probs.append(top_num/total_count)
     return perplexity(probs)
