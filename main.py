@@ -3,22 +3,49 @@ import math
 import random
 from sklearn.naive_bayes import GaussianNB
 
-def createPredictions():
-    train_truthful = process_data('./DATASET/train/truthful.txt', 'r')
-    train_deceptive = process_data('./DATASET/train/deceptive.txt', 'r')
-    val_truthful = process_data('./DATASET/validation/truthful.txt', 'r')
-    val_deceptive = process_data('./DATASET/validation/deceptive.txt', 'r')
+
+def main():
+    train_truthful = process_data('./DATASET/train/truthful.txt')
+    train_fake = process_data('./DATASET/train/deceptive.txt')
+    val_truthful = process_data('./DATASET/validation/truthful.txt')
+    val_fake = process_data('./DATASET/validation/deceptive.txt')
     # combine validation sets
-    val_all = val_truthful + val_deceptive
-    test = process_data('./DATASET/test/test.txt', 'r')
+    val_all = val_truthful + val_fake
+    test = process_data('./DATASET/test/test.txt')
 
     t_unigram_dict = create_unigram_dict(train_truthful)
-    f_unigram_dict = create_unigram_dict(train_deceptive)
+    f_unigram_dict = create_unigram_dict(train_fake)
     t_bigram_dict = create_bigram_dict(train_truthful)
-    f_bigram_dict = create_bigram_dict(train_deceptive)
+    f_bigram_dict = create_bigram_dict(train_fake)
 
-    # call unigram/bigram classifiers
+    # unigram
     unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True)
+    numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
+    while i < numTrue:
+        if unigram_val_preds[i][1] == 0:
+            numCorrect+=1
+        i+=1
+    while i < len(unigram_val_preds):
+        if unigram_val_preds[i][1] == 1:
+            numCorrect+=1
+        i+=1
+    accuracy = float(numCorrect)/len(unigram_val_preds)
+    print("unigram accuracy: "+ str(accuracy))
+
+    # bigram
+    bigram_val_preds = bigram_classifier(t_bigram_dict, f_bigram_dict,
+    t_unigram_dict, f_unigram_dict, val_all, True)
+    numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
+    while i < numTrue:
+        if bigram_val_preds[i][1] == 0:
+            numCorrect+=1
+        i+=1
+    while i < len(unigram_val_preds):
+        if bigram_val_preds[i][1] == 1:
+            numCorrect+=1
+        i+=1
+    accuracy = float(numCorrect)/len(bigram_val_preds)
+    print("bigram accuracy" + str(accuracy))
 
     #naive bayes
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_deceptive)
@@ -32,6 +59,8 @@ def createPredictions():
     print("Number of mislabeled points out of a total %d points : %d"
     % (len(xs),([0]*(len(val_truthful))+[1]*(len(val_deceptive)) != y_pred).sum()))
 
+
+    return accuracy
 
 # text_file is the path of the file to process
 def process_data(text_file):
@@ -61,6 +90,29 @@ def process_data(text_file):
         i.append("<e>")
     return f_lst
 
+
+# text_file is the path of the file to process
+def process_data_unigram(text_file):
+    #f = open('./DATASET/train/truthful.txt', 'r')
+    f = open(text_file)
+    file = f.read()
+    split_arr = file.split(" ")
+    regex = re.compile('[a-zA-Z]')
+    filtered = [i for i in split_arr if regex.search(i)]
+    final = [x.lower() for x in filtered]
+    f_lst = []
+    curr_lst = []
+    for index in range(len(final)):
+        i = final[index]
+        if "\n" not in i:
+            curr_lst.append(i)
+        else:
+            f_lst.append(curr_lst)
+            curr_lst = []
+            split = i.split("\n")
+            curr_lst.append(split[1])
+    return f_lst
+
 def create_unigram_dict(lst):
     result = {}
     result["<unk>"] = 0
@@ -73,17 +125,16 @@ def create_unigram_dict(lst):
             result["<unk>"] += 1
             result[elt] = 0
         else:
-            count = result[elt]
-            result[elt] = count+1
+            result[elt] = result[elt]+1
     return result
 
 def create_bigram_dict(lst):
     result = {}
     result["<unk>"] = 0
-    flat_list = []
+    flat_lst = []
     for sublist in lst:
         for item in sublist:
-            flat_list.append(item)
+            flat_lst.append(item)
     for elt_index in range(len(flat_lst)):
         if elt_index == len(flat_lst) - 1:
             break
@@ -129,11 +180,10 @@ def create_total_count(dict):
     return total_count
 
 # k is the smoothing amount
-def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set, smoothing=False, k=1):
-    test_lst = process_data(test_set)
+def unigram_classifier(unigram_dict_real, unigram_dict_fake, test_set, smoothing=False, k=1):
     pred_lst = []
-    for review_index in range(len(test_lst)):
-        review = test_lst[review_index]
+    for review_index in range(len(test_set)):
+        review = test_set[review_index]
         fake_pp = helper_unigram(review, unigram_dict_fake, smoothing, k)
         real_pp = helper_unigram(review, unigram_dict_real, smoothing, k)
         if fake_pp < real_pp:
@@ -144,10 +194,9 @@ def unigram_classifer(unigram_dict_real, unigram_dict_fake, test_set, smoothing=
 
 def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake,
  test_set, smoothing=False, k=1):
-    test_lst = process_data(test_set)
     pred_lst = []
-    for review_index in range(len(test_lst)):
-        review = test_lst[review_index]
+    for review_index in range(len(test_set)):
+        review = test_set[review_index]
         fake_pp = helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k)
         real_pp = helper_bigram(review, bigram_dict_real, udict_real,smoothing,k)
         if fake_pp < real_pp:
@@ -161,7 +210,7 @@ def perplexity(probabilities):
     summation = 0
     for p in probabilities:
         summation += -1*math.log(p)
-    return math.exp(1/n*summation)
+    return math.exp(1/len(probabilities)*summation)
 
 # Returns the perplexity of a test review
 # if smoothing is True, probability will be calculated with add-k smoothing
@@ -177,9 +226,9 @@ def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
         else:
             bottom_number = unigram_dict.get(review_str[w_index], 0)
             if smoothing:
-                probs.append(curr_bigram_count + k)/(bottom_number + len(unigram_dict))
+                probs.append((top_num + k)/(bottom_number + len(unigram_dict)))
             else:
-                probs.append(curr_bigram_count/bottom_number)
+                probs.append(top_num/bottom_number)
     return perplexity(probs)
 
 
@@ -191,7 +240,10 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
         if top_num == 0:
             top_num = unigram_dict["<unk>"]
         if smoothing:
-            probs.append(tup_num + k)/(total_count + len(unigram_dict))
+            probs.append((top_num + k)/(total_count + len(unigram_dict)))
         else:
-            probs.append(tup_num/total_count)
+            probs.append(top_num/total_count)
     return perplexity(probs)
+
+if __name__ == "__main__":
+    main()
