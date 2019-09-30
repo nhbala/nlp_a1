@@ -48,16 +48,16 @@ def main():
     print("bigram accuracy" + str(accuracy))
 
     #naive bayes
-    whole_dict = create_unigram_dict_no_unkown(train_truthful+train_deceptive)
+    whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
     truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
-    spam_xs, spam_ys = create_nb_input(train_deceptive, whole_dict, 1)
+    spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
     inp_xs = truth_xs+spam_xs
     inp_ys = truth_ys+spam_ys
     gnb = GaussianNB()
     gnb.fit(inp_xs, inp_ys)
     y_pred = gnb.predict(val_all)
     print("Number of mislabeled points out of a total %d points : %d"
-    % (len(xs),([0]*(len(val_truthful))+[1]*(len(val_deceptive)) != y_pred).sum()))
+    % (len(xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
 
     return accuracy
