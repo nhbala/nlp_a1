@@ -3,20 +3,17 @@ import math
 
 
 def main():
-    train_truthful = process_data('./DATASET/train/truthful.txt')
-    train_fake = process_data('./DATASET/train/deceptive.txt')
-    val_truthful = process_data('./DATASET/validation/truthful.txt')
-    val_fake = process_data('./DATASET/validation/deceptive.txt')
-    # combine validation sets
-    val_all = val_truthful + val_fake
-    test = process_data('./DATASET/test/test.txt')
+    #test = process_data('./DATASET/test/test.txt')
 
+    # UNIGRAM
+    train_truthful = process_data_unigram('./DATASET/train/truthful.txt')
+    train_fake = process_data_unigram('./DATASET/train/deceptive.txt')
     t_unigram_dict = create_unigram_dict(train_truthful)
     f_unigram_dict = create_unigram_dict(train_fake)
-    t_bigram_dict = create_bigram_dict(train_truthful)
-    f_bigram_dict = create_bigram_dict(train_fake)
-
-    # unigram
+    val_truthful = process_data_unigram('./DATASET/validation/truthful.txt')
+    val_fake = process_data_unigram('./DATASET/validation/deceptive.txt')
+    # combine validation sets
+    val_all = val_truthful + val_fake
     unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True)
     numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
     while i < numTrue:
@@ -30,7 +27,18 @@ def main():
     accuracy = float(numCorrect)/len(unigram_val_preds)
     print("unigram accuracy: "+ str(accuracy))
 
-    # bigram
+
+    # BIGRAM
+    train_truthful = process_data_bigram('./DATASET/train/truthful.txt')
+    train_fake = process_data_bigram('./DATASET/train/deceptive.txt')
+    t_bigram_dict = create_bigram_dict(train_truthful)
+    f_bigram_dict = create_bigram_dict(train_fake)
+    t_unigram_dict = create_unigram_dict(train_truthful)
+    f_unigram_dict = create_unigram_dict(train_fake)
+    val_truthful = process_data_bigram('./DATASET/validation/truthful.txt')
+    val_fake = process_data_bigram('./DATASET/validation/deceptive.txt')
+    # combine validation sets
+    val_all = val_truthful + val_fake
     bigram_val_preds = bigram_classifier(t_bigram_dict, f_bigram_dict,
     t_unigram_dict, f_unigram_dict, val_all, True)
     numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
@@ -38,18 +46,18 @@ def main():
         if bigram_val_preds[i][1] == 0:
             numCorrect+=1
         i+=1
-    while i < len(unigram_val_preds):
+    while i < len(bigram_val_preds):
         if bigram_val_preds[i][1] == 1:
             numCorrect+=1
         i+=1
     accuracy = float(numCorrect)/len(bigram_val_preds)
-    print("bigram accuracy" + str(accuracy))
+    print("bigram accuracy: " + str(accuracy))
 
 
     return accuracy
 
 # text_file is the path of the file to process
-def process_data(text_file):
+def process_data_bigram(text_file):
     #f = open('./DATASET/train/truthful.txt', 'r')
     f = open(text_file)
     file = f.read()
@@ -83,9 +91,10 @@ def process_data_unigram(text_file):
     f = open(text_file)
     file = f.read()
     split_arr = file.split(" ")
-    regex = re.compile('[a-zA-Z]')
-    filtered = [i for i in split_arr if regex.search(i)]
-    final = [x.lower() for x in filtered]
+    #regex = re.compile('[a-zA-Z]')
+    #filtered = [i for i in split_arr if regex.search(i)]
+    #final = [x.lower() for x in filtered]
+    final = [x.lower() for x in split_arr]
     f_lst = []
     curr_lst = []
     for index in range(len(final)):
