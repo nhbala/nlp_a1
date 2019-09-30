@@ -99,6 +99,8 @@ def process_data_bigram(text_file):
     curr_lst = []
     for index in range(len(final)):
         i = final[index]
+        if re.match("^[A-Za-z0-9_-]*$", i) == False:
+            continue
         if index == 0:
             curr_lst.append("<s>")
             curr_lst.append(i)
