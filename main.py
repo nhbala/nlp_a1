@@ -82,18 +82,25 @@ def main():
     print("Number of mislabeled points out of a total %d points : %d"
     % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
+    #calculate perplexity values
+    fake_w_real = perplexity_all(val_fake, t_bigram_dict, t_unigram_dict)
+    fake_w_fake = perplexity_all(val_fake, f_bigram_dict, f_unigram_dict)
+    real_w_fake = perplexity_all(val_truthful, f_bigram_dict, f_unigram_dict)
+    real_w_real = perplexity_all(val_truthful, t_bigram_dict, t_unigram_dict)
+
+    print("fake_w_real:" + str(fake_w_real))
+    print("fake_w_fake:" + str(fake_w_fake))
+    print("real_w_real:" + str(real_w_real))
+    print("real_w_fake:" + str(real_w_fake))
+
 
     return accuracy
 
 # text_file is the path of the file to process
 def process_data_bigram(text_file):
-    #f = open('./DATASET/train/truthful.txt', 'r')
     f = open(text_file)
     file = f.read()
     split_arr = file.split(" ")
-    # regex = re.compile('[a-zA-Z]')
-    # filtered = [i for i in split_arr if regex.search(i)]
-    # final = [x.lower() for x in filtered]
     final = [x.lower() for x in split_arr]
     f_lst = []
     curr_lst = []
@@ -262,8 +269,8 @@ def unigram_classifier(unigram_dict_real, unigram_dict_fake, test_set, smoothing
     pred_lst = []
     for review_index in range(len(test_set)):
         review = test_set[review_index]
-        fake_pp = helper_unigram(review, unigram_dict_fake, smoothing, k)
-        real_pp = helper_unigram(review, unigram_dict_real, smoothing, k)
+        fake_pp = perplexity(helper_unigram(review, unigram_dict_fake, smoothing, k))
+        real_pp = perplexity(helper_unigram(review, unigram_dict_real, smoothing, k))
         if fake_pp < real_pp:
             pred_lst.append((review_index, 1))
         else:
@@ -275,13 +282,23 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake
     pred_lst = []
     for review_index in range(len(test_set)):
         review = test_set[review_index]
-        fake_pp = helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k)
-        real_pp = helper_bigram(review, bigram_dict_real, udict_real,smoothing,k)
+        fake_pp = perplexity(helper_bigram(review, bigram_dict_fake, udict_fake,smoothing,k))
+        real_pp = perplexity(helper_bigram(review, bigram_dict_real, udict_real,smoothing,k))
         if fake_pp < real_pp:
             pred_lst.append((review_index, 1))
         else:
             pred_lst.append((review_index, 0))
     return pred_lst
+
+def perplexity_all(validation_word_lst, bigram_dict, unigram_dict):
+    flat_lst = []
+    for sub_lst in validation_word_lst:
+        for item in sub_lst:
+            flat_lst.append(item)
+    probs_lst = helper_bigram(flat_lst, bigram_dict, unigram_dict, smoothing=True, k=0.1)
+    return perplexity(probs_lst)
+
+
 
 # probabilities is a list of the probs to multiply
 def perplexity(probabilities):
@@ -290,9 +307,9 @@ def perplexity(probabilities):
         summation += -1*math.log(p)
     return math.exp(1/len(probabilities)*summation)
 
-# Returns the perplexity of a test review
+# Returns the probs of a test review
 # if smoothing is True, probability will be calculated with add-k smoothing
-def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
+def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing = False, k = 1):
     probs = []
     total_count = create_total_count(bigram_dict)
     for w_index in range(0, len(review_str)-1):
@@ -303,7 +320,7 @@ def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
             probs.append((top_num + k)/(bottom_number + k*len(unigram_dict)))
         else:
             probs.append(top_num/bottom_number)
-    return perplexity(probs)
+    return probs
 
 
 def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
@@ -318,7 +335,7 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
             probs.append((top_num + k)/(total_count + k*len(unigram_dict)))
         else:
             probs.append(top_num/total_count)
-    return perplexity(probs)
+    return (probs)
 
 if __name__ == "__main__":
     main()
