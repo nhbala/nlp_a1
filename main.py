@@ -76,6 +76,29 @@ def process_data(text_file):
         i.append("<e>")
     return f_lst
 
+
+# text_file is the path of the file to process
+def process_data_unigram(text_file):
+    #f = open('./DATASET/train/truthful.txt', 'r')
+    f = open(text_file)
+    file = f.read()
+    split_arr = file.split(" ")
+    regex = re.compile('[a-zA-Z]')
+    filtered = [i for i in split_arr if regex.search(i)]
+    final = [x.lower() for x in filtered]
+    f_lst = []
+    curr_lst = []
+    for index in range(len(final)):
+        i = final[index]
+        if "\n" not in i:
+            curr_lst.append(i)
+        else:
+            f_lst.append(curr_lst)
+            curr_lst = []
+            split = i.split("\n")
+            curr_lst.append(split[1])
+    return f_lst
+
 def create_unigram_dict(lst):
     result = {}
     result["<unk>"] = 0
