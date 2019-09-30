@@ -1,23 +1,52 @@
 import re
 import math
 
-def createPredictions():
+
+def main():
     train_truthful = process_data('./DATASET/train/truthful.txt')
     train_fake = process_data('./DATASET/train/deceptive.txt')
     val_truthful = process_data('./DATASET/validation/truthful.txt')
     val_fake = process_data('./DATASET/validation/deceptive.txt')
     # combine validation sets
     val_all = val_truthful + val_fake
-    test = process_data('./DATASET/test/test.txt', 'r')
+    test = process_data('./DATASET/test/test.txt')
 
     t_unigram_dict = create_unigram_dict(train_truthful)
-    f_unigram_dict = create_unigram_dict(train_deceptive)
+    f_unigram_dict = create_unigram_dict(train_fake)
     t_bigram_dict = create_bigram_dict(train_truthful)
-    f_bigram_dict = create_bigram_dict(train_deceptive)
+    f_bigram_dict = create_bigram_dict(train_fake)
 
-    # call unigram/bigram classifiers
+    # unigram
     unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True)
+    numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
+    while i < numTrue:
+        if unigram_val_preds[i][1] == 0:
+            numCorrect+=1
+        i+=1
+    while i < len(unigram_val_preds):
+        if unigram_val_preds[i][1] == 1:
+            numCorrect+=1
+        i+=1
+    accuracy = float(numCorrect)/len(unigram_val_preds)
+    print("unigram accuracy: "+ str(accuracy))
 
+    # bigram
+    bigram_val_preds = bigram_classifier(t_bigram_dict, f_bigram_dict,
+    t_unigram_dict, f_unigram_dict, val_all, True)
+    numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
+    while i < numTrue:
+        if bigram_val_preds[i][1] == 0:
+            numCorrect+=1
+        i+=1
+    while i < len(unigram_val_preds):
+        if bigram_val_preds[i][1] == 1:
+            numCorrect+=1
+        i+=1
+    accuracy = float(numCorrect)/len(bigram_val_preds)
+    print("bigram accuracy" + str(accuracy))
+
+
+    return accuracy
 
 # text_file is the path of the file to process
 def process_data(text_file):
@@ -59,17 +88,16 @@ def create_unigram_dict(lst):
             result["<unk>"] += 1
             result[elt] = 0
         else:
-            count = result[elt]
-            result[elt] = count+1
+            result[elt] = result[elt]+1
     return result
 
 def create_bigram_dict(lst):
     result = {}
     result["<unk>"] = 0
-    flat_list = []
+    flat_lst = []
     for sublist in lst:
         for item in sublist:
-            flat_list.append(item)
+            flat_lst.append(item)
     for elt_index in range(len(flat_lst)):
         if elt_index == len(flat_lst) - 1:
             break
@@ -118,7 +146,6 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake
 
 # probabilities is a list of the probs to multiply
 def perplexity(probabilities):
-    print("perp")
     summation = 0
     for p in probabilities:
         summation += -1*math.log(p)
@@ -138,9 +165,9 @@ def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
         else:
             bottom_number = unigram_dict.get(review_str[w_index], 0)
             if smoothing:
-                probs.append(curr_bigram_count + k)/(bottom_number + len(unigram_dict))
+                probs.append((top_num + k)/(bottom_number + len(unigram_dict)))
             else:
-                probs.append(curr_bigram_count/bottom_number)
+                probs.append(top_num/bottom_number)
     return perplexity(probs)
 
 
@@ -156,3 +183,6 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
         else:
             probs.append(top_num/total_count)
     return perplexity(probs)
+
+if __name__ == "__main__":
+    main()
