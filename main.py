@@ -1,5 +1,7 @@
 import re
 import math
+import random
+from sklearn.naive_bayes import GaussianNB
 
 def createPredictions():
     train_truthful = process_data('./DATASET/train/truthful.txt', 'r')
@@ -17,6 +19,18 @@ def createPredictions():
 
     # call unigram/bigram classifiers
     unigram_val_preds = unigram_classifier(t_unigram_dict, f_unigram_dict, val_all, True)
+
+    #naive bayes
+    whole_dict = create_unigram_dict_no_unkown(train_truthful+train_deceptive)
+    truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
+    spam_xs, spam_ys = create_nb_input(train_deceptive, whole_dict, 1)
+    inp_xs = truth_xs+spam_xs
+    inp_ys = truth_ys+spam_ys
+    gnb = GaussianNB()
+    gnb.fit(inp_xs, inp_ys)
+    y_pred = gnb.predict(val_all)
+    print("Number of mislabeled points out of a total %d points : %d"
+    % (len(xs),([0]*(len(val_truthful))+[1]*(len(val_deceptive)) != y_pred).sum()))
 
 
 # text_file is the path of the file to process
@@ -83,6 +97,30 @@ def create_bigram_dict(lst):
             else:
                 result[curr_tup] += 1
     return result
+
+#for naive_bayes
+def create_unigram_dict_no_unkown(lst):
+    result = {}
+    flat_list = []
+    for sublist in lst:
+        for item in sublist:
+            flat_list.append(item)
+    for elt in flat_list:
+        if elt not in result:
+            result[elt] = 1
+        else:
+            result[elt] = result[elt]+1
+    return result
+
+def create_nb_input(lst, dic, truthful):
+    xs = []
+    for sublist in lst:
+        new_dict = dic.fromkeys(dic, 0)
+        for elt in sublist:
+            new_dict[elt] = new_dict[elt]+1
+        l = new_dict.values()
+        xs.append(l)
+    return xs, [truthful]*(len(lst))
 
 def create_total_count(dict):
     total_count = 0
