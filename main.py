@@ -4,7 +4,7 @@ import random
 from sklearn.naive_bayes import GaussianNB
 
 def main():
-    #test = process_data('./DATASET/test/test.txt')
+    #test = process_data_bigram('./DATASET/test/test.txt')
 
     # UNIGRAM
     train_truthful = process_data_unigram('./DATASET/train/truthful.txt')
@@ -55,6 +55,15 @@ def main():
     print("bigram accuracy: " + str(accuracy))
     print(len(val_all))
 
+    #kaggle predictions
+    test = process_data_bigram('./DATASET/test/test.txt')
+    test_preds = bigram_classifier(t_bigram_dict, f_bigram_dict,
+    t_unigram_dict, f_unigram_dict, test, True, 0.1)
+    pred_labels = []
+    for pred in test_preds:
+        pred_labels.append(pred[1])
+    print(pred_labels) # 1d array of predictions
+
     #naive bayes unigram
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
     truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
@@ -84,14 +93,14 @@ def main():
     % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
     #calculate perplexity values
-    fake_w_real = perplexity_all(val_fake, t_bigram_dict, t_unigram_dict)
-    fake_w_fake = perplexity_all(val_fake, f_bigram_dict, f_unigram_dict)
-    real_w_fake = perplexity_all(val_truthful, f_bigram_dict, f_unigram_dict)
-    real_w_real = perplexity_all(val_truthful, t_bigram_dict, t_unigram_dict)
-    print("fake_w_real:" + str(fake_w_real))
-    print("fake_w_fake:" + str(fake_w_fake))
-    print("real_w_real:" + str(real_w_real))
-    print("real_w_fake:" + str(real_w_fake))
+    # fake_w_real = perplexity_all(val_fake, t_bigram_dict, t_unigram_dict)
+    # fake_w_fake = perplexity_all(val_fake, f_bigram_dict, f_unigram_dict)
+    # real_w_fake = perplexity_all(val_truthful, f_bigram_dict, f_unigram_dict)
+    # real_w_real = perplexity_all(val_truthful, t_bigram_dict, t_unigram_dict)
+    # print("fake_w_real:" + str(fake_w_real))
+    # print("fake_w_fake:" + str(fake_w_fake))
+    # print("real_w_real:" + str(real_w_real))
+    # print("real_w_fake:" + str(real_w_fake))
 
 
 # text_file is the path of the file to process
