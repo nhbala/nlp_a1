@@ -69,15 +69,16 @@ def main():
     print("bigram accuracy: " + str(accuracy))
     print(len(val_all))
 
-    #naive bayes bigram
+    #naive bayes unigram + bigram
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
-    truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
-    spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
-    inp_xs = truth_xs+spam_xs
-    inp_ys = truth_ys+spam_ys
+    whole_dict2 = create_bigram_dict_no_unkown(train_truthful+train_fake)
+    truth_xs, truth_ys = create_nb_input_bigram(train_truthful, whole_dict, whole_dict2, 0)
+    spam_xs, spam_ys = create_nb_input_bigram(train_fake, whole_dict, whole_dict2, 1)
+    inp_xs = truth_xs + spam_xs
+    inp_ys = truth_ys + spam_ys
     gnb = GaussianNB()
     gnb.fit(inp_xs, inp_ys)
-    val_xs, dont_use_this = create_nb_input(val_all, whole_dict, 0)
+    val_xs, dont_use_this = create_nb_input_bigram(val_all, whole_dict, whole_dict2, 0)
     y_pred = gnb.predict(val_xs)
     print("Number of mislabeled points out of a total %d points : %d"
     % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
@@ -192,6 +193,25 @@ def create_unigram_dict_no_unkown(lst):
             result[elt] = result[elt]+1
     return result
 
+def create_bigram_dict_no_unkown(lst):
+    result = {}
+    flat_lst = []
+    for sublist in lst:
+        for item in sublist:
+            flat_lst.append(item)
+    for elt_index in range(len(flat_lst)):
+        if elt_index == len(flat_lst) - 1:
+            break
+        else:
+            curr_tup = (flat_lst[elt_index], flat_lst[elt_index+1])
+            if curr_tup == ("<s>", "<e>"):
+                continue
+            elif curr_tup not in result:
+                result[curr_tup] = 1
+            else:
+                result[curr_tup] += 1
+    return result
+
 def create_nb_input(lst, dic, truthful):
     xs = []
     for sublist in lst:
@@ -201,7 +221,31 @@ def create_nb_input(lst, dic, truthful):
                 new_dict[elt] = new_dict[elt]+1
         l = list(new_dict.values())
         xs.append(l)
-    ys = []
+#    ys = []
+#    for i in lst:
+#        ys.append([truthful])
+    return xs, [truthful]*(len(lst))
+
+def create_nb_input_bigram(lst, dic, dic2, truthful):
+    xs = []
+    for sublist in lst:
+        new_dict = dic.fromkeys(dic, 0)
+        for elt in sublist:
+            if elt in dic:
+                new_dict[elt] = new_dict[elt]+1
+        l = list(new_dict.values())
+
+        new_dict2 = dic.fromkeys(dic2, 0)
+        for elt_index in range(len(sublist)):
+            if elt_index == len(sublist) - 1:
+                break
+            else:
+                curr_tup = (sublist[elt_index], sublist[elt_index+1])
+                if curr_tup in dic2:
+                    new_dict2[curr_tup] = new_dict2[curr_tup]+1
+        l = l + list(new_dict2.values())
+        xs.append(l)
+#    ys = []
 #    for i in lst:
 #        ys.append([truthful])
     return xs, [truthful]*(len(lst))
