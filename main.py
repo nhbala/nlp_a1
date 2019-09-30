@@ -3,7 +3,6 @@ import math
 import random
 from sklearn.naive_bayes import GaussianNB
 
-
 def main():
     #test = process_data('./DATASET/test/test.txt')
 
@@ -55,7 +54,7 @@ def main():
     # combine validation sets
     val_all = val_truthful + val_fake
     bigram_val_preds = bigram_classifier(t_bigram_dict, f_bigram_dict,
-    t_unigram_dict, f_unigram_dict, val_all, True, 0.5)
+    t_unigram_dict, f_unigram_dict, val_all, True, 0.1)
     numTrue = len(val_truthful); numFake = len(val_fake); i = 0; numCorrect = 0
     while i < numTrue:
         if bigram_val_preds[i][1] == 0:
@@ -151,15 +150,18 @@ def create_unigram_dict(lst):
             flat_list.append(item)
     for elt in flat_list:
         if elt not in result:
-            result["<unk>"] += 1
-            result[elt] = 0
+            r = random.randint(0,1)
+            if r < 0.5: # 10% of first occurences go to unknown
+                result["<unk>"] += 1
+                result[elt] = 0
+            else:
+                result[elt] = 1
         else:
             result[elt] = result[elt]+1
     return result
 
 def create_bigram_dict(lst):
     result = {}
-    result["<unk>"] = 0
     flat_lst = []
     for sublist in lst:
         for item in sublist:
@@ -172,8 +174,7 @@ def create_bigram_dict(lst):
             if curr_tup == ("<s>", "<e>"):
                 continue
             elif curr_tup not in result:
-                result["<unk>"] += 1
-                result[curr_tup] = 0
+                result[curr_tup] = 1
             else:
                 result[curr_tup] += 1
     return result
@@ -253,16 +254,11 @@ def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing, k):
     for w_index in range(0, len(review_str)-1):
         curr_tup = (review_str[w_index], review_str[w_index + 1])
         top_num = bigram_dict.get(curr_tup, 0)
-        if top_num == 0:
-            #top_num = bigram_dict["<unk>"]
-            top_num = k
-            probs.append(top_num/total_count)
+        bottom_number = unigram_dict.get(review_str[w_index], 0)
+        if smoothing:
+            probs.append((top_num + k)/(bottom_number + k*len(unigram_dict)))
         else:
-            bottom_number = unigram_dict.get(review_str[w_index], 0)
-            if smoothing:
-                probs.append((top_num + k)/(bottom_number + k*len(unigram_dict)))
-            else:
-                probs.append(top_num/bottom_number)
+            probs.append(top_num/bottom_number)
     return perplexity(probs)
 
 
@@ -273,6 +269,7 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
         top_num = unigram_dict.get(w, 0)
         if top_num == 0:
             top_num = unigram_dict["<unk>"]
+            #top_num = k
         if smoothing:
             probs.append((top_num + k)/(total_count + k*len(unigram_dict)))
         else:
