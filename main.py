@@ -91,9 +91,10 @@ def process_data_bigram(text_file):
     f = open(text_file)
     file = f.read()
     split_arr = file.split(" ")
-    regex = re.compile('[a-zA-Z]')
-    filtered = [i for i in split_arr if regex.search(i)]
-    final = [x.lower() for x in filtered]
+    # regex = re.compile('[a-zA-Z]')
+    # filtered = [i for i in split_arr if regex.search(i)]
+    # final = [x.lower() for x in filtered]
+    final = [x.lower() for x in split_arr]
     f_lst = []
     curr_lst = []
     for index in range(len(final)):
