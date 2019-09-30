@@ -28,7 +28,20 @@ def main():
         i+=1
     accuracy = float(numCorrect)/len(unigram_val_preds)
     print("unigram accuracy: "+ str(accuracy))
+    print(len(val_all))
 
+    #naive bayes unigram
+    whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
+    truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
+    spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
+    inp_xs = truth_xs+spam_xs
+    inp_ys = truth_ys+spam_ys
+    gnb = GaussianNB()
+    gnb.fit(inp_xs, inp_ys)
+    val_xs, dont_use_this = create_nb_input(val_all, whole_dict, 0)
+    y_pred = gnb.predict(val_xs)
+    print("Number of mislabeled points out of a total %d points : %d"
+    % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
     # BIGRAM
     train_truthful = process_data_bigram('./DATASET/train/truthful.txt')
@@ -54,8 +67,9 @@ def main():
         i+=1
     accuracy = float(numCorrect)/len(bigram_val_preds)
     print("bigram accuracy: " + str(accuracy))
+    print(len(val_all))
 
-    #naive bayes
+    #naive bayes bigram
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
     truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
     spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
@@ -97,6 +111,7 @@ def process_data_bigram(text_file):
             curr_lst.append(split[1])
     for i in f_lst:
         i.append("<e>")
+    print("bigram length:" + str(len(f_lst)))
     return f_lst
 
 
@@ -121,6 +136,7 @@ def process_data_unigram(text_file):
             curr_lst = []
             split = i.split("\n")
             curr_lst.append(split[1])
+    print("unigram length:" + str(len(f_lst)))
     return f_lst
 
 def create_unigram_dict(lst):
@@ -183,9 +199,9 @@ def create_nb_input(lst, dic, truthful):
         l = list(new_dict.values())
         xs.append(l)
     ys = []
-    for i in lst:
-        ys.append([truthful])
-    return xs, ys
+#    for i in lst:
+#        ys.append([truthful])
+    return xs, [truthful]*(len(lst))
 
 def create_total_count(dict):
     total_count = 0
