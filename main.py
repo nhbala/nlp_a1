@@ -6,7 +6,7 @@ from sklearn.naive_bayes import GaussianNB
 def main():
     #test = process_data_bigram('./DATASET/test/test.txt')
 
-    # UNIGRAM
+    # UNIGRAM LM
     train_truthful = process_data_unigram('./DATASET/train/truthful.txt')
     train_fake = process_data_unigram('./DATASET/train/deceptive.txt')
     t_unigram_dict = create_unigram_dict(train_truthful)
@@ -29,7 +29,7 @@ def main():
     print("unigram accuracy: "+ str(accuracy))
     print(len(val_all))
 
-    # BIGRAM
+    # BIGRAM LM
     train_truthful = process_data_bigram('./DATASET/train/truthful.txt')
     train_fake = process_data_bigram('./DATASET/train/deceptive.txt')
     t_bigram_dict = create_bigram_dict(train_truthful)
@@ -62,9 +62,10 @@ def main():
     pred_labels = []
     for pred in test_preds:
         pred_labels.append(pred[1])
-    print(pred_labels) # 1d array of predictions
+        print(pred[1])
+    #print(pred_labels) # 1d array of predictions
 
-    #naive bayes unigram
+    # naive bayes unigram
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
     truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
     spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
@@ -77,7 +78,7 @@ def main():
     print("Number of mislabeled points out of a total %d points : %d"
     % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
-    #naive bayes unigram + bigram
+    # naive bayes unigram + bigram
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
     whole_dict2 = create_bigram_dict_no_unkown(train_truthful+train_fake)
     whole_dict3 = create_trigram_dict_no_unkown(train_truthful+train_fake)
@@ -93,14 +94,14 @@ def main():
     % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
 
     #calculate perplexity values
-    # fake_w_real = perplexity_all(val_fake, t_bigram_dict, t_unigram_dict)
-    # fake_w_fake = perplexity_all(val_fake, f_bigram_dict, f_unigram_dict)
-    # real_w_fake = perplexity_all(val_truthful, f_bigram_dict, f_unigram_dict)
-    # real_w_real = perplexity_all(val_truthful, t_bigram_dict, t_unigram_dict)
-    # print("fake_w_real:" + str(fake_w_real))
-    # print("fake_w_fake:" + str(fake_w_fake))
-    # print("real_w_real:" + str(real_w_real))
-    # print("real_w_fake:" + str(real_w_fake))
+    fake_w_real = perplexity_all(val_fake, t_bigram_dict, t_unigram_dict)
+    fake_w_fake = perplexity_all(val_fake, f_bigram_dict, f_unigram_dict)
+    real_w_fake = perplexity_all(val_truthful, f_bigram_dict, f_unigram_dict)
+    real_w_real = perplexity_all(val_truthful, t_bigram_dict, t_unigram_dict)
+    print("fake_w_real:" + str(fake_w_real))
+    print("fake_w_fake:" + str(fake_w_fake))
+    print("real_w_real:" + str(real_w_real))
+    print("real_w_fake:" + str(real_w_fake))
 
 
 # text_file is the path of the file to process
@@ -166,7 +167,7 @@ def create_unigram_dict(lst):
     for elt in flat_list:
         if elt not in result:
             r = random.randint(0,10)
-            if r <= 0: # 10% of first occurences go to unknown
+            if r <= 0: # ~10% of first occurences go to unknown
                 result["<unk>"] += 1
                 result[elt] = 0
             else:
@@ -344,7 +345,7 @@ def perplexity(probabilities):
         summation += -1*math.log(p)
     return math.exp(1/len(probabilities)*summation)
 
-# Returns the probs of a test review
+# Returns the probs (as an array) of a review
 # if smoothing is True, probability will be calculated with add-k smoothing
 def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing = False, k = 1):
     probs = []
