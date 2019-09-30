@@ -29,19 +29,6 @@ def main():
     print("unigram accuracy: "+ str(accuracy))
     print(len(val_all))
 
-    #naive bayes unigram
-    whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
-    truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
-    spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
-    inp_xs = truth_xs+spam_xs
-    inp_ys = truth_ys+spam_ys
-    gnb = GaussianNB()
-    gnb.fit(inp_xs, inp_ys)
-    val_xs, dont_use_this = create_nb_input(val_all, whole_dict, 0)
-    y_pred = gnb.predict(val_xs)
-    print("Number of mislabeled points out of a total %d points : %d"
-    % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
-
     # BIGRAM
     train_truthful = process_data_bigram('./DATASET/train/truthful.txt')
     train_fake = process_data_bigram('./DATASET/train/deceptive.txt')
@@ -68,6 +55,19 @@ def main():
     print("bigram accuracy: " + str(accuracy))
     print(len(val_all))
 
+    #naive bayes unigram
+    whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
+    truth_xs, truth_ys = create_nb_input(train_truthful, whole_dict, 0)
+    spam_xs, spam_ys = create_nb_input(train_fake, whole_dict, 1)
+    inp_xs = truth_xs+spam_xs
+    inp_ys = truth_ys+spam_ys
+    gnb = GaussianNB()
+    gnb.fit(inp_xs, inp_ys)
+    val_xs, dont_use_this = create_nb_input(val_all, whole_dict, 0)
+    y_pred = gnb.predict(val_xs)
+    print("Number of mislabeled points out of a total %d points : %d"
+    % (len(val_xs),([0]*(len(val_truthful))+[1]*(len(val_fake)) != y_pred).sum()))
+
     #naive bayes unigram + bigram
     whole_dict = create_unigram_dict_no_unkown(train_truthful+train_fake)
     whole_dict2 = create_bigram_dict_no_unkown(train_truthful+train_fake)
@@ -88,14 +88,11 @@ def main():
     fake_w_fake = perplexity_all(val_fake, f_bigram_dict, f_unigram_dict)
     real_w_fake = perplexity_all(val_truthful, f_bigram_dict, f_unigram_dict)
     real_w_real = perplexity_all(val_truthful, t_bigram_dict, t_unigram_dict)
-
     print("fake_w_real:" + str(fake_w_real))
     print("fake_w_fake:" + str(fake_w_fake))
     print("real_w_real:" + str(real_w_real))
     print("real_w_fake:" + str(real_w_fake))
 
-
-    return accuracy
 
 # text_file is the path of the file to process
 def process_data_bigram(text_file):
@@ -159,8 +156,8 @@ def create_unigram_dict(lst):
             flat_list.append(item)
     for elt in flat_list:
         if elt not in result:
-            r = random.randint(0,1)
-            if r < 0.5: # 10% of first occurences go to unknown
+            r = random.randint(0,10)
+            if r <= 0: # 10% of first occurences go to unknown
                 result["<unk>"] += 1
                 result[elt] = 0
             else:
@@ -320,6 +317,8 @@ def bigram_classifier(bigram_dict_real, bigram_dict_fake, udict_real, udict_fake
             pred_lst.append((review_index, 0))
     return pred_lst
 
+
+# returns the perplexity of the whole corpus
 def perplexity_all(validation_word_lst, bigram_dict, unigram_dict):
     flat_lst = []
     for sub_lst in validation_word_lst:
@@ -329,8 +328,7 @@ def perplexity_all(validation_word_lst, bigram_dict, unigram_dict):
     return perplexity(probs_lst)
 
 
-
-# probabilities is a list of the probs to multiply
+# returns perplexity of one review given list of probabilities
 def perplexity(probabilities):
     summation = 0
     for p in probabilities:
@@ -347,9 +345,9 @@ def helper_bigram(review_str, bigram_dict, unigram_dict, smoothing = False, k = 
         top_num = bigram_dict.get(curr_tup, 0)
         bottom_number = unigram_dict.get(review_str[w_index], 0)
         if smoothing:
-            probs.append((top_num + k)/(bottom_number + k*len(unigram_dict)))
+            probs.append(float(top_num + k)/(bottom_number + k*len(unigram_dict)))
         else:
-            probs.append(top_num/bottom_number)
+            probs.append(float(top_num)/bottom_number)
     return probs
 
 
@@ -362,9 +360,9 @@ def helper_unigram(review_str, unigram_dict, smoothing = False, k = 1):
             top_num = unigram_dict["<unk>"]
             #top_num = k
         if smoothing:
-            probs.append((top_num + k)/(total_count + k*len(unigram_dict)))
+            probs.append(float(top_num + k)/(total_count + k*len(unigram_dict)))
         else:
-            probs.append(top_num/total_count)
+            probs.append(float(top_num)/total_count)
     return (probs)
 
 if __name__ == "__main__":
