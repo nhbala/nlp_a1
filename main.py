@@ -27,7 +27,7 @@ def main():
         i+=1
     accuracy = float(numCorrect)/len(unigram_val_preds)
     print("unigram accuracy: "+ str(accuracy))
-    print(len(val_all))
+    #print(len(val_all))
 
     # BIGRAM LM
     train_truthful = process_data_bigram('./DATASET/train/truthful.txt')
@@ -53,7 +53,7 @@ def main():
         i+=1
     accuracy = float(numCorrect)/len(bigram_val_preds)
     print("bigram accuracy: " + str(accuracy))
-    print(len(val_all))
+    #print(len(val_all))
 
     #kaggle predictions
     test = process_data_bigram('./DATASET/test/test.txt')
@@ -62,7 +62,7 @@ def main():
     pred_labels = []
     for pred in test_preds:
         pred_labels.append(pred[1])
-        print(pred[1])
+        #print(pred[1])
     #print(pred_labels) # 1d array of predictions
 
     # naive bayes unigram
@@ -264,10 +264,13 @@ def create_nb_input(lst, dic, truthful):
 def create_nb_input_bigram(lst, dic, dic2, dic3, truthful):
     xs = []
     for sublist in lst:
+        count_punc = 0
         new_dict = dic.fromkeys(dic, 0)
         for elt in sublist:
             if elt in dic:
                 new_dict[elt] = new_dict[elt]+1
+            if not re.match("^[A-Za-z0-9_-]*$", elt):
+                count_punc = count_punc+1
         l = list(new_dict.values())
 
         new_dict2 = dic2.fromkeys(dic2, 0)
@@ -289,6 +292,7 @@ def create_nb_input_bigram(lst, dic, dic2, dic3, truthful):
                 if curr_tup in dic3:
                     new_dict3[curr_tup] = new_dict3[curr_tup]+1
         l = l + list(new_dict3.values())
+        l.append(count_punc*100/len(lst))
         xs.append(l)
 #    ys = []
 #    for i in lst:
